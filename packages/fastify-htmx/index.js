@@ -17,6 +17,16 @@ async function prepareClient(clientModule, scope, config) {
   if (!clientModule) {
     return null
   }
+
+  let defaultLayout = null
+  try {
+    defaultLayout = await resolveLayout(config.vite.root, 'default')
+  } catch (e) {
+    scope.log.info(
+      'No default layout specified. Falling back to virtual layout.',
+    )
+  }
+
   const { routes } = clientModule
   for (const route of routes) {
     // Predecorate Request and Reply objects
@@ -31,9 +41,22 @@ async function prepareClient(clientModule, scope, config) {
       }
     }
     // Pregenerate prefetching <head> elements
+    let assets = { css: [], svg: [], js: [] }
+    // Extract potential layout imports
+    let layout = null
+    if (route.layout) {
+      layout = await resolveLayout(config.vite.root, route.layout)
+    } else if (defaultLayout) {
+      layout = defaultLayout
+    }
+    if (layout) {
+      assets = await findClientImports(config.vite.root, layout)
+    }
+    // Extract the route's imports
     const { css, svg, js } = await findClientImports(
       config.vite.root,
       route.modulePath,
+      assets,
     )
     route[kPrefetch] = ''
     for (const stylesheet of css) {
@@ -208,4 +231,14 @@ function createErrorHandler(_, scope, config) {
     }
     scope.errorHandler(error, req, reply)
   }
+}
+
+async function resolveLayout(root, layout) {
+  const fullPath = await resolvePath(
+    join(root, 'layouts', layout || 'default'),
+    {
+      extensions: ['.mjs', '.cjs', '.js', '.jsx', '.ts', '.tsx'],
+    },
+  )
+  return fullPath.replace(root, '')
 }
