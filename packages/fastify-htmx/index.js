@@ -163,7 +163,7 @@ async function findClientImports(
           const filePathWithExtension = await resolvePath(
             join(root, resolved),
             {
-              extensions: ['.mjs', '.cjs', '.js', '.ts', '.tsx'],
+              extensions: ['.mjs', '.cjs', '.js', '.jsx', '.ts', '.tsx'],
             },
           )
           const specifier = filePathWithExtension.replace(root, '')
