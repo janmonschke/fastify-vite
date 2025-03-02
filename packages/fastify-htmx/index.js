@@ -167,12 +167,20 @@ async function renderHead(client, route, ctx) {
   return rendered
 }
 
+/**
+ * @type Map<string, { js: string[], css: string[], svg:[] }
+ */
+const clientImportsCache = new Map()
 async function findClientImports(
   root,
   path,
   { js = [], css = [], svg = [] } = {},
 ) {
+  if (clientImportsCache.has(path)) {
+    return clientImportsCache.get(path)
+  }
   const source = await readFile(join(root, path), 'utf8')
+
   const specifiers = (
     await Promise.all(
       findStaticImports(source).map(async ({ specifier }) => {
@@ -203,6 +211,9 @@ async function findClientImports(
   })
 
   for (const specifier of specifiers) {
+    if (specifier.match(/\.server\./)) {
+      continue
+    }
     const resolved = resolve(dirname(path), specifier)
     if (specifier.match(/\.svg$/)) {
       svg.push(resolved.slice(1))
@@ -215,6 +226,7 @@ async function findClientImports(
     }
     if (specifier.match(/\.((m?js)|(tsx?)|(jsx?))$/)) {
       const submoduleImports = await findClientImports(root, resolved)
+      clientImportsCache.set(resolved, submoduleImports)
       js.push(...submoduleImports.js)
       css.push(...submoduleImports.css)
       svg.push(...submoduleImports.svg)
