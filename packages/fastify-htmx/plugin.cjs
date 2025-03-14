@@ -57,9 +57,8 @@ function viteFastifyHtmx(config = {}) {
       name: 'vite-plugin-fastify-htmx',
       config(config, { command }) {
         config.esbuild = {
-          "jsx": "react-jsx",
-          // jsxFactory: 'Html.createElement',
-          // jsxFragment: 'Html.Fragment',
+          jsx: 'automatic',
+          jsxImportSource: '@kitajs/html',
         }
         if (command === 'build' && config.build?.ssr) {
           config.build.rollupOptions = {
